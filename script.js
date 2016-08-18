@@ -6,6 +6,7 @@ let baseCamera;
 let uiScene;
 let uiCamera;
 let sphere;
+const uiElements = {};
 
 
 function render(){
@@ -19,20 +20,60 @@ function render(){
 }
 
 
-function getMesh({width, height, color, x, y, z}){
+function resize(width, height){
+	baseCamera.aspect = width / height;
+	baseCamera.updateProjectionMatrix();
+
+	const halfWidth = 0.5 * width;
+	const halfHeight = 0.5 * height;
+	uiCamera.left = -halfWidth;
+	uiCamera.right = halfWidth;
+	uiCamera.top = halfHeight;
+	uiCamera.bottom = -halfHeight;
+	uiCamera.updateProjectionMatrix();
+
+	for (const id in uiElements){
+		const element = uiElements[id];
+		let x = 0;
+		let y = 0;
+		switch(element.align){
+			case 'left':
+				x = -halfWidth + (0.5 * element.width);
+			break;
+			case 'right':
+				x = halfWidth - (0.5 * element.width);
+			break;
+		}
+		switch(element.valign){
+			case 'top':
+				y = halfHeight - (0.5 * element.height);
+			break;
+			case 'bottom':
+				y = -halfHeight + (0.5 * element.height);
+			break;
+		}
+		element.mesh.position.x = x;
+		element.mesh.position.y = y;
+	}
+
+	renderer.setSize(width, height);
+}
+
+
+function addUiElement({id, width, height, color, align, valign}){
 	const mesh = new THREE.Mesh(
 		new THREE.PlaneGeometry(width, height),
 		new THREE.MeshBasicMaterial({color})
 	);
-	mesh.position.set(x, y, z);
-	return mesh;
+	uiScene.add(mesh);
+	uiElements[id] = {mesh, width, height, align, valign};
 }
 
 
 function setupBase(width, height){
 	baseScene = new THREE.Scene();
 	baseCamera = new THREE.PerspectiveCamera(75, width / height, 0.1, 500);
-	baseCamera.position.set(0, 0, 20);
+	baseCamera.position.set(0, 0, 8);
 
 	const orbit = new THREE.OrbitControls(baseCamera, renderer.domElement);
 	orbit.enableZoom = false;
@@ -51,16 +92,7 @@ function setupBase(width, height){
 
 	baseScene.add(new THREE.AmbientLight(0x000000));
 
-	sphere = new THREE.Object3D();
-	sphere.add(new THREE.LineSegments(
-		new THREE.SphereGeometry(5, 16, 16),
-		new THREE.LineBasicMaterial({
-			color: 0xffffff,
-			transparent: true,
-			opacity: 0.5
-		})
-	));
-	sphere.add(new THREE.Mesh(
+	sphere = new THREE.Mesh(
 		new THREE.SphereGeometry(5, 16, 16),
 		new THREE.MeshPhongMaterial({
 			color: 0x156289,
@@ -68,7 +100,7 @@ function setupBase(width, height){
 			side: THREE.DoubleSide,
 			shading: THREE.FlatShading
 		})
-	));
+	);
 	baseScene.add(sphere);
 }
 
@@ -77,54 +109,70 @@ function setupUI(halfWidth, halfHeight){
 	uiScene = new THREE.Scene();
 	uiCamera = new THREE.OrthographicCamera(-halfWidth, halfWidth, halfHeight, -halfHeight, 1, 10);
 	uiCamera.position.set(0, 0, 10);
-
-	// Top-right
-	uiScene.add(
-		getMesh({
-			width: 100,
-			height: 100,
-			color: 0x00ff00,
-			x: halfWidth - 50,
-			y: halfHeight - 50,
-			z: 0
-		})
-	);
-
-	// Top-left
-	uiScene.add(
-		getMesh({
-			width: 100,
-			height: 100,
-			color: 0xff0000,
-			x: -halfWidth + 50,
-			y: halfHeight - 50,
-			z: 0
-		})
-	);
-
-	// Bottom-right
-	uiScene.add(
-		getMesh({
-			width: 100,
-			height: 100,
-			color: 0x0000ff,
-			x: halfWidth - 50,
-			y: -halfHeight + 50,
-			z: 0
-		})
-	);
-
-	// Bottom-left
-	uiScene.add(
-		getMesh({
-			width: 100,
-			height: 100,
-			color: 0xffff00,
-			x: -halfWidth + 50,
-			y: -halfHeight + 50,
-			z: 0
-		})
-	);
+	addUiElement({
+		id: 'top-left',
+		width: 100,
+		height: 100,
+		color: 0xff0000,
+		align: 'left',
+		valign: 'top'
+	});
+	addUiElement({
+		id: 'top-right',
+		width: 100,
+		height: 100,
+		color: 0x00ff00,
+		align: 'right',
+		valign: 'top'
+	});
+	addUiElement({
+		id: 'bottom-left',
+		width: 100,
+		height: 100,
+		color: 0x0000ff,
+		align: 'left',
+		valign: 'bottom'
+	});
+	addUiElement({
+		id: 'bottom-right',
+		width: 100,
+		height: 100,
+		color: 0xffff00,
+		align: 'right',
+		valign: 'bottom'
+	});
+	addUiElement({
+		id: 'center-left',
+		width: 100,
+		height: 100,
+		color: 0x00ffff,
+		align: 'left',
+		valign: 'center'
+	});
+	addUiElement({
+		id: 'center-right',
+		width: 100,
+		height: 100,
+		color: 0xff00ff,
+		align: 'right',
+		valign: 'center'
+	});
+	addUiElement({
+		id: 'top-center',
+		width: 100,
+		height: 100,
+		color: 0x888888,
+		align: 'center',
+		valign: 'top'
+	});
+	addUiElement({
+		id: 'bottom-center',
+		width: 100,
+		height: 100,
+		color: 0xdddddd,
+		align: 'center',
+		valign: 'bottom'
+	});
 }
 
 
@@ -142,6 +190,7 @@ function start(){
 
 	setupBase(width, height);
 	setupUI(0.5 * width, 0.5 * height);
+	resize(width, height);
 	render();
 }
 
